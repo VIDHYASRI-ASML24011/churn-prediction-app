@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Churn Analyzer</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="top">
+    <div class="wrap top-row">
+      <h1>Churn Analyzer</h1>
+      <span id="api-status" class="api" role="status">Checking backend…</span>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section id="upload" class="panel upload">
+      <div class="upload-copy">
+        <h2>Upload a customer dataset</h2>
+        <p>Upload a CSV with one row per customer and a column that says whether they churned. The Python backend cleans it, explores it, trains four models and scores every customer.</p>
+        <ol class="flow">
+          <li>Clean the data</li>
+          <li>Explore churn patterns</li>
+          <li>Train and compare models</li>
+          <li>Score every customer</li>
+        </ol>
+      </div>
+      <form id="form" class="upload-form" novalidate>
+        <label id="drop" class="drop" for="file">
+          <input id="file" type="file" accept=".csv,text/csv" hidden>
+          <strong id="drop-title">Choose a CSV file</strong>
+          <span id="drop-hint">or drag it here. Up to 25 MB and 50,000 rows.</span>
+        </label>
+
+        <div id="target-row" class="field" hidden>
+          <label for="target">Which column says if the customer churned?</label>
+          <select id="target"></select>
+          <small id="target-note"></small>
+        </div>
+
+        <p id="error" class="error" role="alert" hidden></p>
+
+        <div class="actions">
+          <button id="run" class="btn primary" type="submit" disabled>Analyze dataset</button>
+          <button id="sample" class="btn" type="button">Use the Telco sample</button>
+        </div>
+      </form>
+    </section>
+
+    <section id="loading" class="panel loading" hidden aria-live="polite">
+      <div class="spinner" aria-hidden="true"></div>
+      <div>
+        <h2>Analyzing your dataset</h2>
+        <p id="loading-step">Cleaning the data…</p>
+      </div>
+    </section>
+
+    <section id="results" hidden>
+      <div class="result-head">
+        <div>
+          <h2 id="result-title">Results</h2>
+          <p id="result-sub"></p>
+        </div>
+        <div class="downloads">
+          <a id="dl-cleaned" class="btn primary" href="#">Download cleaned dataset</a>
+          <a id="dl-scored" class="btn" href="#">Download scored customers</a>
+          <button id="again" class="btn quiet" type="button">Upload another file</button>
+        </div>
+      </div>
+
+      <nav class="tabs" role="tablist" aria-label="Results">
+        <button role="tab" data-tab="cleaning" aria-selected="true">Data cleaning</button>
+        <button role="tab" data-tab="eda" aria-selected="false">EDA</button>
+        <button role="tab" data-tab="building" aria-selected="false">Model building</button>
+        <button role="tab" data-tab="scoring" aria-selected="false">Churn scoring</button>
+        <button role="tab" data-tab="charts" aria-selected="false">EDA charts</button>
+        <button role="tab" data-tab="comparison" aria-selected="false">Model comparison</button>
+        <button role="tab" data-tab="evaluation" aria-selected="false">Model evaluation</button>
+      </nav>
+
+      <div id="tab-cleaning" class="tabpane" role="tabpanel"></div>
+      <div id="tab-eda" class="tabpane" role="tabpanel" hidden></div>
+      <div id="tab-building" class="tabpane" role="tabpanel" hidden></div>
+      <div id="tab-scoring" class="tabpane" role="tabpanel" hidden></div>
+      <div id="tab-charts" class="tabpane" role="tabpanel" hidden></div>
+      <div id="tab-comparison" class="tabpane" role="tabpanel" hidden></div>
+      <div id="tab-evaluation" class="tabpane" role="tabpanel" hidden></div>
+    </section>
+  </main>
+
+  <footer class="wrap foot">Customer Churn Prediction and Retention Analytics · AMET University capstone</footer>
+
+  <script src="config.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
