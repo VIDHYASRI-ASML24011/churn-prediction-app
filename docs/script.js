@@ -62,10 +62,18 @@
     el.textContent = msg || "";
     el.hidden = !msg;
   }
+  function setStep(n) {
+    document.querySelectorAll("#flow li").forEach((li) => {
+      const k = Number(li.dataset.step);
+      li.className = k < n ? "done" : k === n ? "current" : "";
+    });
+  }
   function show(view) {
     $("upload").hidden = view !== "upload";
     $("loading").hidden = view !== "loading";
     $("results").hidden = view !== "results";
+    setStep(view === "upload" ? 1 : view === "loading" ? 2 : 5);
+    if (view === "results") document.querySelector('#flow li[data-step="4"]').className = "current";
   }
 
   // ---------- file selection ----------
@@ -106,7 +114,7 @@
     show("loading");
     let i = 0;
     $("loading-step").textContent = STEPS[0];
-    const timer = setInterval(() => { i = Math.min(i + 1, STEPS.length - 1); $("loading-step").textContent = STEPS[i]; }, 1800);
+    const timer = setInterval(() => { i = Math.min(i + 1, STEPS.length - 1); $("loading-step").textContent = STEPS[i]; setStep(i < 2 ? 2 : 3); }, 1800);
     const fd = new FormData();
     fd.append("file", state.file);
     fd.append("target", $("target").value);
@@ -132,19 +140,38 @@
   }
 
   // ---------- renderers ----------
+  const LEAD = {
+    cleaning: ["Data cleaning", "The uploaded file is checked and corrected before any analysis. Each step below shows what was found and whether anything was changed."],
+    eda: ["EDA summary", "Exploratory data analysis shows who churns and how the groups differ, using the cleaned dataset."],
+    charts: ["EDA charts", "Charts that show the churn patterns found in the exploratory analysis."],
+    building: ["Model building", "How the data was prepared and which models were trained to predict churn."],
+    comparison: ["Model comparison", "All four models are scored on customers that were held back from training. The model with the highest ROC AUC is selected."],
+    evaluation: ["Model evaluation", "How well the selected model predicts churn, which customers it misses, and which features drive its predictions."],
+    scoring: ["Churn scoring and risk levels", "Every customer receives a churn probability and a risk level, so that retention effort can start with the highest risk."],
+  };
+  function lead(tab) {
+    return [h("h3", { class: "pane-title" }, LEAD[tab][0]), h("p", { class: "lead" }, LEAD[tab][1])];
+  }
+
   function render(d) {
     state.runId = d.run_id;
     $("result-title").textContent = d.filename;
     $("result-sub").textContent = `${num(d.cleaning.rows_after)} customers analysed. Best model: ${d.evaluation.model}.`;
+    const hi = d.scoring.levels.find((l) => l.level === "High Risk");
+    $("summary").replaceChildren(
+      h("div", {}, h("b", {}, num(d.cleaning.rows_after)), h("span", {}, "customers analysed")),
+      h("div", {}, h("b", {}, d.eda.overview.churn_rate + "%"), h("span", {}, "overall churn rate")),
+      h("div", {}, h("b", {}, d.evaluation.model), h("span", {}, "best model, ROC AUC " + d.evaluation.metrics.roc_auc.toFixed(3))),
+      h("div", {}, h("b", {}, num(hi.customers)), h("span", {}, "high-risk customers (" + hi.share + "%)")));
     $("dl-cleaned").href = `${API}/api/download/${d.run_id}/cleaned`;
     $("dl-scored").href = `${API}/api/download/${d.run_id}/scored`;
-    $("tab-cleaning").replaceChildren(...cleaningTab(d.cleaning));
-    $("tab-eda").replaceChildren(...edaTab(d.eda));
-    $("tab-building").replaceChildren(...buildingTab(d.model_building));
-    $("tab-scoring").replaceChildren(...scoringTab(d.scoring, d.run_id));
-    $("tab-charts").replaceChildren(h("div", { class: "charts" }, d.eda.charts.map(chart)));
-    $("tab-comparison").replaceChildren(...comparisonTab(d.comparison, d.run_id));
-    $("tab-evaluation").replaceChildren(...evaluationTab(d.evaluation));
+    $("tab-cleaning").replaceChildren(...lead("cleaning"), ...cleaningTab(d.cleaning));
+    $("tab-eda").replaceChildren(...lead("eda"), ...edaTab(d.eda));
+    $("tab-building").replaceChildren(...lead("building"), ...buildingTab(d.model_building));
+    $("tab-scoring").replaceChildren(...lead("scoring"), ...scoringTab(d.scoring, d.run_id));
+    $("tab-charts").replaceChildren(...lead("charts"), h("div", { class: "charts" }, d.eda.charts.map(chart)));
+    $("tab-comparison").replaceChildren(...lead("comparison"), ...comparisonTab(d.comparison, d.run_id));
+    $("tab-evaluation").replaceChildren(...lead("evaluation"), ...evaluationTab(d.evaluation));
     selectTab("cleaning");
   }
 
@@ -158,7 +185,7 @@
         stat(num(c.missing_after), "missing values left")),
       card("What the cleaning did",
         h("ul", { class: "steps" }, c.steps.map((s) =>
-          h("li", {}, h("div", { class: "tick " + (s.changed ? "changed" : "same"), "aria-hidden": "true" }, s.changed ? "✎" : "✓"),
+          h("li", {}, h("span", { class: "pill " + (s.changed ? "fixed" : "ok") }, s.changed ? "Changed" : "No change"),
             h("div", {}, h("b", {}, s.title), h("span", {}, s.detail)))))),
       c.dropped_columns.length || c.missing_filled.length ? h("div", { class: "two" },
         c.dropped_columns.length ? card("Columns dropped", table(["Column", "Reason"], c.dropped_columns.map((x) => [x.column, x.reason]))) : null,
@@ -305,8 +332,8 @@
   document.querySelector(".tabs").addEventListener("keydown", (e) => {
     const tabs = [...document.querySelectorAll(".tabs button")];
     const i = tabs.findIndex((t) => t.getAttribute("aria-selected") === "true");
-    const next = e.key === "ArrowRight" ? i + 1 : e.key === "ArrowLeft" ? i - 1 : null;
-    if (next != null && tabs[next]) { tabs[next].focus(); selectTab(tabs[next].dataset.tab); }
+    const next = (e.key === "ArrowRight" || e.key === "ArrowDown") ? i + 1 : (e.key === "ArrowLeft" || e.key === "ArrowUp") ? i - 1 : null;
+    if (next != null && tabs[next]) { e.preventDefault(); tabs[next].focus(); selectTab(tabs[next].dataset.tab); }
   });
 
   checkApi();

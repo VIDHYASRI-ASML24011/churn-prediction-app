@@ -3,38 +3,60 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Churn Analyzer</title>
+  <title>Customer Churn Prediction and Retention Analytics</title>
+  <meta name="description" content="Upload a customer dataset to clean it, explore it, compare four machine learning models and score every customer for churn risk.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <header class="top">
-    <div class="wrap top-row">
-      <h1>Churn Analyzer</h1>
+  <header class="masthead">
+    <div class="wrap masthead-inner">
+      <div class="masthead-text">
+        <p class="institution">AMET University · Faculty of Advanced Computing Sciences</p>
+        <h1>Customer Churn Prediction and Retention Analytics</h1>
+        <p class="course">B.Sc. Artificial Intelligence and Machine Learning · Capstone project by G.M. Vidhya Sri (ASML24011)</p>
+      </div>
       <span id="api-status" class="api" role="status">Checking backend…</span>
     </div>
   </header>
 
+  <nav class="flowbar" aria-label="Progress">
+    <div class="wrap">
+      <ol id="flow" class="flow">
+        <li data-step="1" class="current">Upload dataset</li>
+        <li data-step="2">Clean and explore</li>
+        <li data-step="3">Train and score</li>
+        <li data-step="4">Review results</li>
+      </ol>
+    </div>
+  </nav>
+
   <main class="wrap">
-    <section id="upload" class="panel upload">
+    <!-- Step 1: upload -->
+    <section id="upload" class="panel upload" aria-labelledby="upload-title">
       <div class="upload-copy">
-        <h2>Upload a customer dataset</h2>
-        <p>Upload a CSV with one row per customer and a column that says whether they churned. The Python backend cleans it, explores it, trains four models and scores every customer.</p>
-        <ol class="flow">
-          <li>Clean the data</li>
-          <li>Explore churn patterns</li>
-          <li>Train and compare models</li>
-          <li>Score every customer</li>
+        <h2 id="upload-title">Analyze a customer dataset</h2>
+        <p>Upload a CSV file with one row per customer and a column that shows whether the customer churned. The analysis runs on the Python backend and the results appear in seven sections.</p>
+        <ol class="pipeline">
+          <li><b>Clean the data</b><span>Fix types, remove duplicates and identifiers, fill missing values.</span></li>
+          <li><b>Explore churn patterns</b><span>Churn rate by contract, service and payment method.</span></li>
+          <li><b>Train and compare models</b><span>Logistic Regression, Decision Tree, Random Forest, Gradient Boosting.</span></li>
+          <li><b>Score every customer</b><span>Churn probability with High, Medium or Low risk.</span></li>
         </ol>
       </div>
+
       <form id="form" class="upload-form" novalidate>
         <label id="drop" class="drop" for="file">
           <input id="file" type="file" accept=".csv,text/csv" hidden>
+          <svg class="drop-icon" viewBox="0 0 24 24" width="30" height="30" aria-hidden="true"><path d="M12 16V4m0 0L7 9m5-5 5 5M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
           <strong id="drop-title">Choose a CSV file</strong>
           <span id="drop-hint">or drag it here. Up to 25 MB and 50,000 rows.</span>
         </label>
 
         <div id="target-row" class="field" hidden>
-          <label for="target">Which column says if the customer churned?</label>
+          <label for="target">Churn column</label>
           <select id="target"></select>
           <small id="target-note"></small>
         </div>
@@ -45,9 +67,11 @@
           <button id="run" class="btn primary" type="submit" disabled>Analyze dataset</button>
           <button id="sample" class="btn" type="button">Use the Telco sample</button>
         </div>
+        <p class="fine">The sample is the IBM Telco Customer Churn dataset with 7,043 customers.</p>
       </form>
     </section>
 
+    <!-- Step 2: running -->
     <section id="loading" class="panel loading" hidden aria-live="polite">
       <div class="spinner" aria-hidden="true"></div>
       <div>
@@ -56,6 +80,7 @@
       </div>
     </section>
 
+    <!-- Step 3: results -->
     <section id="results" hidden>
       <div class="result-head">
         <div>
@@ -69,27 +94,41 @@
         </div>
       </div>
 
-      <nav class="tabs" role="tablist" aria-label="Results">
-        <button role="tab" data-tab="cleaning" aria-selected="true">Data cleaning</button>
-        <button role="tab" data-tab="eda" aria-selected="false">EDA</button>
-        <button role="tab" data-tab="building" aria-selected="false">Model building</button>
-        <button role="tab" data-tab="scoring" aria-selected="false">Churn scoring</button>
-        <button role="tab" data-tab="charts" aria-selected="false">EDA charts</button>
-        <button role="tab" data-tab="comparison" aria-selected="false">Model comparison</button>
-        <button role="tab" data-tab="evaluation" aria-selected="false">Model evaluation</button>
-      </nav>
+      <div id="summary" class="summary"></div>
 
-      <div id="tab-cleaning" class="tabpane" role="tabpanel"></div>
-      <div id="tab-eda" class="tabpane" role="tabpanel" hidden></div>
-      <div id="tab-building" class="tabpane" role="tabpanel" hidden></div>
-      <div id="tab-scoring" class="tabpane" role="tabpanel" hidden></div>
-      <div id="tab-charts" class="tabpane" role="tabpanel" hidden></div>
-      <div id="tab-comparison" class="tabpane" role="tabpanel" hidden></div>
-      <div id="tab-evaluation" class="tabpane" role="tabpanel" hidden></div>
+      <div class="workspace">
+        <nav class="tabs" role="tablist" aria-label="Result sections">
+          <span class="group">Data preparation</span>
+          <button role="tab" data-tab="cleaning" aria-selected="true">Data cleaning</button>
+          <button role="tab" data-tab="eda" aria-selected="false">EDA summary</button>
+          <button role="tab" data-tab="charts" aria-selected="false">EDA charts</button>
+          <span class="group">Modelling</span>
+          <button role="tab" data-tab="building" aria-selected="false">Model building</button>
+          <button role="tab" data-tab="comparison" aria-selected="false">Model comparison</button>
+          <button role="tab" data-tab="evaluation" aria-selected="false">Model evaluation</button>
+          <span class="group">Retention</span>
+          <button role="tab" data-tab="scoring" aria-selected="false">Churn scoring</button>
+        </nav>
+
+        <div class="panes">
+          <div id="tab-cleaning" class="tabpane" role="tabpanel"></div>
+          <div id="tab-eda" class="tabpane" role="tabpanel" hidden></div>
+          <div id="tab-charts" class="tabpane" role="tabpanel" hidden></div>
+          <div id="tab-building" class="tabpane" role="tabpanel" hidden></div>
+          <div id="tab-comparison" class="tabpane" role="tabpanel" hidden></div>
+          <div id="tab-evaluation" class="tabpane" role="tabpanel" hidden></div>
+          <div id="tab-scoring" class="tabpane" role="tabpanel" hidden></div>
+        </div>
+      </div>
     </section>
   </main>
 
-  <footer class="wrap foot">Customer Churn Prediction and Retention Analytics · AMET University capstone</footer>
+  <footer class="footer">
+    <div class="wrap">
+      <span>AMET University · Capstone project, 2026</span>
+      <span>Python (Flask, scikit-learn) backend · HTML, CSS and JavaScript frontend</span>
+    </div>
+  </footer>
 
   <script src="config.js"></script>
   <script src="script.js"></script>
