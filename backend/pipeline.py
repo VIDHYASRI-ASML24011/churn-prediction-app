@@ -52,6 +52,7 @@ POSITIVE_LABELS = {
     "exited", "attrited", "attrited customer", "cancelled", "canceled",
 }
 TARGET_HINTS = ("churn", "exited", "attrition", "cancel", "left")
+OUTPUT_COLUMNS = {"churn_probability", "risk_category", "predicted_churn", "churnflag", "churn_flag"}
 ID_NAME = re.compile(r"^(id|(customer|cust|user|client|account|row)_?(id|number|no))$|_id$")
 
 # Chart colours: validated categorical slots 1-4, plus status colours for risk levels.
@@ -205,6 +206,16 @@ def clean_dataset(raw: pd.DataFrame, target: str):
 
     rows_before, cols_before = df.shape
     steps: list[dict] = []
+
+    # Columns written by an earlier scoring run would leak the answer into the model
+    leaked = [c for c in df.columns if _norm(c) in OUTPUT_COLUMNS and c != target]
+    df = df.drop(columns=leaked)
+    steps.append({
+        "title": "Drop model output columns",
+        "detail": ("Dropped " + ", ".join(leaked) + " (written by an earlier scoring run, they would leak the answer).")
+                  if leaked else "No columns from an earlier scoring run found.",
+        "changed": bool(leaked),
+    })
 
     # Trim whitespace, turn blank strings into missing values
     blank_cells = 0
